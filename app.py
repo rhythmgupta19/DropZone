@@ -48,12 +48,14 @@ def create_app(config_class=Config):
     start_cleanup_scheduler(app)
 
     # ── Root route ─────────────────────────────────────────────────────────
-  @app.route("/analytics")
-    def analytics():
+ from flask import request, abort
+
+@app.route("/analytics")
+def analytics():
     key = request.args.get("key")
 
     if key != "rhythm_admin_123":
-        abort(403)  # Unauthorized access
+        abort(403)
 
     return {
         "message": "Welcome Admin",
