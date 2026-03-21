@@ -1,0 +1,56 @@
+# render.yaml — Render.com deployment configuration
+# Docs: https://render.com/docs/blueprint-spec
+#
+# HOW TO USE:
+#   1. Push your repo to GitHub
+#   2. Go to https://dashboard.render.com → "New" → "Blueprint"
+#   3. Connect your GitHub repo — Render reads this file automatically
+#   4. Set the secret env vars in the Render dashboard (SECRET_KEY, APP_BASE_URL)
+
+services:
+  - type: web
+    name: dropzone
+    runtime: python
+    region: oregon          # Change to: frankfurt | singapore | ohio | virginia
+    plan: free              # Upgrade to "starter" ($7/mo) for persistent disk
+
+    # ── Build ──────────────────────────────────────────────────────────────
+    buildCommand: pip install -r requirements.txt
+
+    # ── Start ─────────────────────────────────────────────────────────────
+    # --workers 1  : free tier has 512 MB RAM, keep workers low
+    # --threads 4  : allow concurrent requests within one worker
+    # --timeout 120: allow up to 2 min for large file uploads
+    startCommand: gunicorn wsgi:app --workers 1 --threads 4 --timeout 120 --bind 0.0.0.0:$PORT --access-logfile - --error-logfile -
+
+    # ── Health check ───────────────────────────────────────────────────────
+    healthCheckPath: /
+
+    # ── Environment variables ──────────────────────────────────────────────
+    # Non-secret values defined here; secrets set in Render dashboard.
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+
+      - key: UPLOAD_FOLDER
+        value: uploads
+
+      - key: MAX_FILE_SIZE_MB
+        value: "50"
+
+      - key: FILE_EXPIRY_DAYS
+        value: "7"
+
+      - key: CLEANUP_INTERVAL_HOURS
+        value: "1"
+
+      - key: LOG_LEVEL
+        value: INFO
+
+      - key: LOG_FOLDER
+        value: logs
+
+      # ── Set these in the Render dashboard (NOT here — they are secrets) ──
+      # SECRET_KEY        → generate with: python -c "import secrets; print(secrets.token_hex(32))"
+      # APP_BASE_URL      → your Render public URL: https://dropzone-xxxx.onrender.com
+      # DATABASE_URL      → add a Render PostgreSQL addon and it auto-injects this

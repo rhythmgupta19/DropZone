@@ -1,0 +1,21 @@
+# DropZone — Python dependencies
+# Install with: pip install -r requirements.txt
+
+# ── Web framework ──────────────────────────────────────────────────────────
+Flask==3.0.3
+
+# ── Database ORM ───────────────────────────────────────────────────────────
+Flask-SQLAlchemy==3.1.1
+SQLAlchemy==2.0.36
+
+# ── Background scheduler (expiry cleanup job) ─────────────────────────────
+APScheduler==3.10.4
+
+# ── Environment variable loading ──────────────────────────────────────────
+python-dotenv==1.0.1
+
+# ── Production WSGI server ────────────────────────────────────────────────
+gunicorn==23.0.0
+
+# ── Werkzeug (Flask dependency — pinned for security) ─────────────────────
+Werkzeug==3.0.6

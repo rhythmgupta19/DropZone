@@ -1,0 +1,48 @@
+# ── Secrets / environment ─────────────────────────────────────────────────────
+.env
+
+# ── Uploaded user files (never commit real uploads) ──────────────────────────
+uploads/
+!uploads/.gitkeep
+
+# ── Application logs ──────────────────────────────────────────────────────────
+logs/
+!logs/.gitkeep
+
+# ── SQLite database ───────────────────────────────────────────────────────────
+*.db
+*.sqlite
+*.sqlite3
+
+# ── Python cache ──────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+
+# ── Virtual environments ──────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# ── Distribution / packaging ──────────────────────────────────────────────────
+dist/
+build/
+*.egg-info/
+*.egg
+
+# ── IDE / editor ──────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Testing ───────────────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/

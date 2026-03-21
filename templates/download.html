@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DropZone — Download File</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <style>
+    .page-wrapper { min-height: 100vh; display: flex; flex-direction: column; }
+    main {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1.25rem;
+    }
+    .download-container { width: 100%; max-width: 500px; }
+
+    /* ── Loading skeleton ─────────────────────────────────── */
+    .skeleton-line {
+      height: 14px;
+      background: linear-gradient(90deg,
+        rgba(255,255,255,0.06) 25%,
+        rgba(255,255,255,0.12) 50%,
+        rgba(255,255,255,0.06) 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.6s infinite;
+      border-radius: 6px;
+      margin: 0.5rem 0;
+    }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    /* ── File card ────────────────────────────────────────── */
+    .file-card { padding: 2rem; }
+
+    .file-type-icon {
+      width: 70px; height: 70px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(108,99,255,0.3), rgba(0,212,255,0.2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.2rem;
+      margin: 0 auto 1.2rem;
+    }
+    .file-name {
+      text-align: center;
+      font-size: 1.1rem;
+      font-weight: 700;
+      word-break: break-all;
+      margin-bottom: 0.3rem;
+    }
+    .file-subinfo {
+      text-align: center;
+      font-size: 0.82rem;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.6rem;
+      margin-bottom: 1.5rem;
+    }
+    .info-cell {
+      padding: 0.65rem 0.8rem;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+    }
+    .info-cell-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-muted); margin-bottom: 2px; }
+    .info-cell-value { font-size: 0.88rem; font-weight: 600; }
+
+    /* ── Expiry bar ────────────────────────────────────────── */
+    .expiry-section { margin-bottom: 1.5rem; }
+    .expiry-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      margin-bottom: 0.35rem;
+    }
+
+    /* ── States: expired, not found ─────────────────────────── */
+    .state-card { padding: 2.5rem 2rem; text-align: center; }
+    .state-icon { font-size: 3.5rem; display: block; margin-bottom: 1rem; }
+    .state-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .state-desc { font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1.5rem; }
+
+    /* ── Error msg ─────────────────────────────────────────── */
+    #pw-error {
+      font-size: 0.83rem;
+      margin-top: 0.5rem;
+      padding: 0.6rem 0.9rem;
+      background: rgba(255,82,82,0.1);
+      border: 1px solid rgba(255,82,82,0.25);
+      border-radius: 8px;
+    }
+  </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">
+      <span class="brand-icon">📦</span>
+      <span class="brand-gradient">DropZone</span>
+    </a>
+    <div class="navbar-links">
+      <a href="/" class="nav-link">⬆️ <span>Upload</span></a>
+    </div>
+  </nav>
+
+  <main>
+    <div class="download-container">
+
+      <!-- Loading state -->
+      <div id="loading-state" class="glass-card file-card">
+        <div style="text-align:center; margin-bottom:1.5rem;">
+          <div class="spinner" style="width:40px;height:40px;border-width:3px;margin:0 auto;"></div>
+        </div>
+        <div class="skeleton-line" style="width:60%;margin:0 auto;"></div>
+        <div class="skeleton-line" style="width:40%;margin:0.5rem auto;"></div>
+        <div style="height:1rem;"></div>
+        <div class="skeleton-line"></div>
+        <div class="skeleton-line"></div>
+      </div>
+
+      <!-- File found state (hidden until loaded) -->
+      <div id="file-state" class="glass-card file-card hidden">
+
+        <div class="file-type-icon" id="file-icon">📄</div>
+        <h1 class="file-name" id="file-name">Loading…</h1>
+        <p class="file-subinfo" id="file-subinfo">—</p>
+
+        <!-- Info grid -->
+        <div class="info-grid">
+          <div class="info-cell">
+            <div class="info-cell-label">Size</div>
+            <div class="info-cell-value" id="info-size">—</div>
+          </div>
+          <div class="info-cell">
+            <div class="info-cell-label">Downloads</div>
+            <div class="info-cell-value" id="info-downloads">—</div>
+          </div>
+          <div class="info-cell">
+            <div class="info-cell-label">Uploaded</div>
+            <div class="info-cell-value" id="info-created">—</div>
+          </div>
+          <div class="info-cell">
+            <div class="info-cell-label">Expires</div>
+            <div class="info-cell-value" id="info-expires">—</div>
+          </div>
+        </div>
+
+        <!-- Expiry progress bar -->
+        <div class="expiry-section">
+          <div class="expiry-label">
+            <span>⏳ Time remaining</span>
+            <span id="expiry-remaining">—</span>
+          </div>
+          <div class="progress-wrap">
+            <div class="progress-bar" id="expiry-bar" style="background: linear-gradient(90deg,#00e676,#00d4ff);"></div>
+          </div>
+        </div>
+
+        <!-- Password field (shown only if protected) -->
+        <div id="pw-group" class="form-group hidden">
+          <label class="form-label" for="password">🔒 This file is password protected</label>
+          <input
+            class="form-input"
+            id="password"
+            type="password"
+            placeholder="Enter password to download…"
+            autocomplete="current-password"
+          />
+          <p id="pw-error" class="text-danger hidden"></p>
+        </div>
+
+        <!-- Download button -->
+        <button id="download-btn" class="btn btn-success btn-full btn-lg">
+          <span id="download-icon">⬇️</span>
+          <span id="download-text">Download File</span>
+        </button>
+
+        <!-- Back link -->
+        <div class="text-center mt-2">
+          <a href="/" class="nav-link" style="font-size:0.85rem;">⬆️ Upload your own file</a>
+        </div>
+      </div><!-- /file-state -->
+
+      <!-- Expired state -->
+      <div id="expired-state" class="glass-card state-card hidden">
+        <span class="state-icon">⌛</span>
+        <h2 class="state-title">File Expired</h2>
+        <p class="state-desc">This file has exceeded its 7-day lifespan and has been automatically deleted.</p>
+        <a href="/" class="btn btn-primary">⬆️ Upload a new file</a>
+      </div>
+
+      <!-- Not found state -->
+      <div id="notfound-state" class="glass-card state-card hidden">
+        <span class="state-icon">🔍</span>
+        <h2 class="state-title">File Not Found</h2>
+        <p class="state-desc">This link is invalid, or the file has already been deleted.</p>
+        <a href="/" class="btn btn-primary">⬆️ Upload a new file</a>
+      </div>
+
+    </div><!-- /download-container -->
+  </main>
+
+  <footer class="footer">
+    <p>DropZone — Files auto-delete after 7 days &nbsp;·&nbsp; <a href="/analytics">Analytics</a></p>
+  </footer>
+
+</div>
+
+<!-- Pass file ID from Flask template to JS -->
+<script>
+  const FILE_ID = "{{ file_id }}";
+</script>
+<script src="{{ url_for('static', filename='js/download.js') }}"></script>
+</body>
+</html>

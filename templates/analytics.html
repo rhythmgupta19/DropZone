@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DropZone — Analytics</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📊</text></svg>" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    .page-wrapper { min-height: 100vh; display: flex; flex-direction: column; }
+    main { flex: 1; padding: 2rem 1.5rem; max-width: 1100px; margin: 0 auto; width: 100%; }
+
+    /* ── Page header ──────────────────────────────────────── */
+    .page-header { margin-bottom: 2rem; }
+    .page-title { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.5px; }
+    .page-subtitle { color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.25rem; }
+
+    /* ── Stat cards row ───────────────────────────────────── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .stat-card {
+      padding: 1.4rem 1.5rem;
+    }
+    .stat-icon { font-size: 1.6rem; margin-bottom: 0.6rem; display: block; }
+    .stat-value { font-size: 2rem; font-weight: 800; line-height: 1; }
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      margin-top: 0.3rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .stat-card.accent-purple .stat-value { color: var(--primary); }
+    .stat-card.accent-cyan   .stat-value { color: var(--secondary); }
+    .stat-card.accent-green  .stat-value { color: var(--success); }
+    .stat-card.accent-yellow .stat-value { color: var(--warning); }
+
+    /* ── Two-column grid ──────────────────────────────────── */
+    .content-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 1.2rem;
+      margin-bottom: 1.5rem;
+    }
+    @media (max-width: 820px) { .content-grid { grid-template-columns: 1fr; } }
+
+    /* ── Section card ─────────────────────────────────────── */
+    .section-card { padding: 1.5rem; }
+    .section-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .section-badge {
+      font-size: 0.7rem;
+      padding: 0.2rem 0.55rem;
+      background: rgba(108,99,255,0.15);
+      color: var(--primary);
+      border-radius: 999px;
+      font-weight: 600;
+    }
+
+    /* ── Chart canvas ─────────────────────────────────────── */
+    .chart-wrap { position: relative; height: 260px; }
+
+    /* ── Empty state ──────────────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 2.5rem 1rem;
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+    .empty-state-icon { font-size: 2.5rem; display: block; margin-bottom: 0.7rem; }
+
+    /* ── Loading overlay ──────────────────────────────────── */
+    #loading-overlay {
+      text-align: center;
+      padding: 4rem 0;
+      color: var(--text-secondary);
+    }
+    #loading-overlay .spinner { width: 40px; height: 40px; border-width: 3px; margin: 0 auto 1rem; }
+  </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <a href="/" class="navbar-brand">
+      <span class="brand-icon">📦</span>
+      <span class="brand-gradient">DropZone</span>
+    </a>
+    <div class="navbar-links">
+      <a href="/" class="nav-link">⬆️ <span>Upload</span></a>
+      <a href="/analytics" class="nav-link active">📊 <span>Analytics</span></a>
+    </div>
+  </nav>
+
+  <main>
+
+    <!-- Page header -->
+    <div class="page-header">
+      <h1 class="page-title">📊 Analytics <span class="brand-gradient">Dashboard</span></h1>
+      <p class="page-subtitle">Platform-wide file sharing statistics — refreshed on page load.</p>
+    </div>
+
+    <!-- Loading -->
+    <div id="loading-overlay">
+      <div class="spinner"></div>
+      <p>Loading analytics…</p>
+    </div>
+
+    <!-- Dashboard (hidden until data loaded) -->
+    <div id="dashboard" class="hidden">
+
+      <!-- Summary stat cards -->
+      <div class="stats-grid" id="stats-grid">
+        <div class="glass-card stat-card accent-purple">
+          <span class="stat-icon">📁</span>
+          <div class="stat-value" id="stat-total">0</div>
+          <div class="stat-label">Total Files Uploaded</div>
+        </div>
+        <div class="glass-card stat-card accent-green">
+          <span class="stat-icon">✅</span>
+          <div class="stat-value" id="stat-active">0</div>
+          <div class="stat-label">Active Files</div>
+        </div>
+        <div class="glass-card stat-card accent-cyan">
+          <span class="stat-icon">⬇️</span>
+          <div class="stat-value" id="stat-downloads">0</div>
+          <div class="stat-label">Total Downloads</div>
+        </div>
+        <div class="glass-card stat-card accent-yellow">
+          <span class="stat-icon">💾</span>
+          <div class="stat-value" id="stat-storage">0</div>
+          <div class="stat-label">Storage Used (MB)</div>
+        </div>
+      </div>
+
+      <!-- Charts + top files -->
+      <div class="content-grid">
+
+        <!-- Bar chart: top files by downloads -->
+        <div class="glass-card section-card">
+          <div class="section-title">
+            🏆 Top Files by Downloads
+            <span class="section-badge" id="chart-badge">Top 10</span>
+          </div>
+          <div id="chart-empty" class="empty-state hidden">
+            <span class="empty-state-icon">📭</span>
+            No downloads recorded yet.
+          </div>
+          <div class="chart-wrap" id="chart-wrap">
+            <canvas id="downloadsChart"></canvas>
+          </div>
+        </div>
+
+        <!-- Summary pie / extra stats -->
+        <div class="glass-card section-card">
+          <div class="section-title">📈 File Status Breakdown</div>
+          <div class="chart-wrap" id="pie-wrap">
+            <canvas id="statusChart"></canvas>
+          </div>
+        </div>
+
+      </div><!-- /content-grid -->
+
+      <!-- Recent uploads table -->
+      <div class="glass-card section-card" style="margin-bottom:2rem;">
+        <div class="section-title">
+          🕒 Recent Uploads
+          <span class="section-badge">Last 10</span>
+        </div>
+        <div id="table-empty" class="empty-state hidden">
+          <span class="empty-state-icon">📭</span>
+          No files uploaded yet. <a href="/" style="color:var(--primary);">Upload the first one!</a>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="data-table" id="recent-table">
+            <thead>
+              <tr>
+                <th>File</th>
+                <th>Size</th>
+                <th>Downloads</th>
+                <th>Uploaded</th>
+                <th>Expires</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="recent-tbody">
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /dashboard -->
+
+  </main>
+
+  <footer class="footer">
+    <p>DropZone Analytics &nbsp;·&nbsp; <a href="/">Upload a file</a></p>
+  </footer>
+
+</div>
+
+<script src="{{ url_for('static', filename='js/analytics.js') }}"></script>
+</body>
+</html>

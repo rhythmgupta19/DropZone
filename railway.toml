@@ -1,0 +1,19 @@
+# railway.toml — Railway.app deployment configuration
+# Docs: https://docs.railway.app/reference/config-as-code
+#
+# HOW TO USE:
+#   1. Install Railway CLI:  npm install -g @railway/cli
+#   2. Login:                railway login
+#   3. Link project:         railway link
+#   4. Set env vars:         railway variables set SECRET_KEY=... APP_BASE_URL=...
+#   5. Deploy:               railway up
+
+[build]
+builder = "NIXPACKS"       # Railway auto-detects Python via requirements.txt
+
+[deploy]
+startCommand = "gunicorn wsgi:app --workers 1 --threads 4 --timeout 120 --bind 0.0.0.0:$PORT"
+healthcheckPath = "/"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
