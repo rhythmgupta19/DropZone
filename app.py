@@ -4,6 +4,7 @@ Main application factory (app.py)
 """
 
 import os
+from flask import request,abort
 from flask import Flask, render_template
 from config import Config
 from extensions import db
@@ -47,10 +48,17 @@ def create_app(config_class=Config):
     start_cleanup_scheduler(app)
 
     # ── Root route ─────────────────────────────────────────────────────────
-    @app.route('/')
-    def index():
-        return render_template('index.html')
+  @app.route("/analytics")
+    def analytics():
+    key = request.args.get("key")
 
+    if key != "rhythm_admin_123":
+        abort(403)  # Unauthorized access
+
+    return {
+        "message": "Welcome Admin",
+        "status": "Analytics working"
+    }
     # ── Global error handlers ──────────────────────────────────────────────
     @app.errorhandler(404)
     def not_found(e):
