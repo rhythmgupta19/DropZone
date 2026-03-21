@@ -67,3 +67,5 @@ def create_app(config_class=Config):
         return {'error': 'Internal server error. Please try again.'}, 500
 
     return app
+
+app = create_app()
