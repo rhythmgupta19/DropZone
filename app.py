@@ -4,7 +4,6 @@ Main application factory (app.py)
 """
 
 import os
-from flask import request,abort
 from flask import Flask, render_template
 from config import Config
 from extensions import db
@@ -20,17 +19,17 @@ def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
 
-    # ── Ensure required directories exist ──────────────────────────────────
+    # ── Ensure required directories exist ────────────────────────────────
     os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
     os.makedirs(app.config['LOG_FOLDER'], exist_ok=True)
 
-    # ── Setup structured JSON logging first ────────────────────────────────
+    # ── Setup structured JSON logging ────────────────────────────────────
     setup_logger(app)
 
-    # ── Initialize SQLAlchemy ──────────────────────────────────────────────
+    # ── Initialize SQLAlchemy ────────────────────────────────────────────
     db.init_app(app)
 
-    # ── Register blueprints (route modules) ───────────────────────────────
+    # ── Register blueprints ──────────────────────────────────────────────
     from routes.upload import upload_bp
     from routes.download import download_bp
     from routes.analytics import analytics_bp
@@ -39,29 +38,20 @@ def create_app(config_class=Config):
     app.register_blueprint(download_bp)
     app.register_blueprint(analytics_bp)
 
-    # ── Create all database tables ─────────────────────────────────────────
+    # ── Create all database tables ───────────────────────────────────────
     with app.app_context():
         db.create_all()
         app.logger.info("DATABASE_INIT tables=ready")
 
-    # ── Start background cleanup scheduler ─────────────────────────────────
+    # ── Start background cleanup scheduler ───────────────────────────────
     start_cleanup_scheduler(app)
 
-    # ── Root route ─────────────────────────────────────────────────────────
- from flask import request, abort
+    # ── Root route ───────────────────────────────────────────────────────
+    @app.route("/")
+    def home():
+        return render_template("index.html")
 
-@app.route("/analytics")
-def analytics():
-    key = request.args.get("key")
-
-    if key != "rhythm_admin_123":
-        abort(403)
-
-    return {
-        "message": "Welcome Admin",
-        "status": "Analytics working"
-    }
-    # ── Global error handlers ──────────────────────────────────────────────
+    # ── Error handlers ───────────────────────────────────────────────────
     @app.errorhandler(404)
     def not_found(e):
         return {'error': 'Resource not found'}, 404
@@ -69,13 +59,15 @@ def analytics():
     @app.errorhandler(413)
     def file_too_large(e):
         max_mb = app.config['MAX_CONTENT_LENGTH'] // (1024 * 1024)
-        return {'error': f'File too large. Maximum allowed size is {max_mb}MB.'}, 413
+        return {'error': f'File too large. Max size is {max_mb}MB'}, 413
 
     @app.errorhandler(500)
     def internal_error(e):
         app.logger.error(f"INTERNAL_ERROR error={e}")
-        return {'error': 'Internal server error. Please try again.'}, 500
+        return {'error': 'Internal server error'}, 500
 
     return app
 
+
+# ── App instance ─────────────────────────────────────────────────────────
 app = create_app()
