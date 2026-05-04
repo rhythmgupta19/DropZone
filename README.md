@@ -13,6 +13,14 @@ Upload files, get a shareable link, files auto-delete after **7 days**.
 
 ---
 
+## 🌍 Live Demo
+
+**Try it now:** [https://dropzone-1.onrender.com](https://dropzone-1.onrender.com)
+
+Open the repository, and you can instantly access the live web application above!
+
+---
+
 ## 📁 Folder Structure
 
 ```
